@@ -4,6 +4,8 @@
 
 ```bash
 adb shell am start -n com.helloworld/com.helloworld.MainActivity
+# e.g.2
+adb shell am start -n com.helloworld/com.helloworld.SpareActivity
 # source: https://stackoverflow.com/a/4567928/10012446
 
 #or
