@@ -1,5 +1,41 @@
 # Learning Android
 
+**am**: Open app with am
+
+```bash
+adb shell am start -n com.helloworld/com.helloworld.MainActivity
+# e.g.2
+adb shell am start -n com.helloworld/com.helloworld.SpareActivity
+# source: https://stackoverflow.com/a/4567928/10012446
+
+#or
+adb shell
+am start -n com.package.name/com.package.name.ActivityName
+# source: https://stackoverflow.com/a/12274218/10012446
+```
+
+
+Stop an app:
+
+```
+adb shell am force-stop com.helloworld
+#or
+adb shell
+am force-stop com.helloworld
+```
+
+**Monkey** - The Monkey is a program that runs on your emulator or device and generates pseudo-random streams of user events such as clicks, touches, or gestures, as well as a number of system-level events. You can use the Monkey to stress-test applications that you are developing, in a random yet repeatable manner. [Here](https://developer.android.com/studio/test/monkey).
+
+```
+# Open app and send 50 random actions (source: official docs link above)
+adb shell monkey -p your.package.name -v 50
+# or
+adb shell
+monkey -p your.package.name -v 50
+```
+
+- All about on-device developer options with android studio: [Here](https://developer.android.com/studio/debug/dev-options).
+
 ## cli usage with android projects:
 
 **Use below command to generate apk and install right away**:
