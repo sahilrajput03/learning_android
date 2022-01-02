@@ -4,11 +4,12 @@
 
 ```bash
 adb shell am start -n com.helloworld/com.helloworld.MainActivity
-# src: https://stackoverflow.com/a/4567928/10012446
+# source: https://stackoverflow.com/a/4567928/10012446
 
 #or
 adb shell
 am start -n com.package.name/com.package.name.ActivityName
+# source: https://stackoverflow.com/a/12274218/10012446
 ```
 
 
