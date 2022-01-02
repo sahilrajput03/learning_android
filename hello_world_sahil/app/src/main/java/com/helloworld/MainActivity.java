@@ -16,26 +16,28 @@ import android.os.Build;
 
 
 public class MainActivity extends Activity {
-  @Override
-  protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    setContentView(R.layout.activity_main);
-    
-    // Sending a toast message
-    Toast.makeText(getApplicationContext(), "Toast: Activity Code just executed.", Toast.LENGTH_LONG).show(); // Toast.LENGTH_SHORT and Toast.LENGTH_LONG,  // We can't change duration at all, source: https://stackoverflow.com/a/2221285/10012446
-
+  // todo: try extending all below methods like showToast and showNotification to be extended in this MainActivity class from someother file so as to make better abstractions, yikes!!
+  
+  // Generated via github copilot:
+  public static void showToast(Context context, String message) {
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+  }
+  
+  // todo: try extending all below methods like showToast and showNotification to be extended in this MainActivity class from someother file so as to make better abstractions, yikes!!
+  public static void showNotification(Context context, String category_text, String title_text, String description_text) {
+    //// Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
     // Sending a statusbar notification: docs:https://developer.android.com/training/notify-user/build-notification#add_the_support_library.
     // src: https://stackoverflow.com/a/16448278/10012446
     NotificationManager mNotificationManager;
 
-    NotificationCompat.Builder b = new NotificationCompat.Builder(getApplicationContext(), "notify_001");
-    Intent i = new Intent(getApplicationContext(), MainActivity.class);
-    PendingIntent pi = PendingIntent.getActivity(MainActivity.this, 0, i, 0);
+    NotificationCompat.Builder b = new NotificationCompat.Builder(context, "notify_001");
+    Intent i = new Intent(context, MainActivity.class);
+    PendingIntent pi = PendingIntent.getActivity(context, 0, i, 0);
 
     NotificationCompat.BigTextStyle bigText = new NotificationCompat.BigTextStyle();
-    bigText.bigText("My long notification text here goes here..");
-    bigText.setBigContentTitle("Today's Bible Verse");
-    bigText.setSummaryText("Text in detail");
+    bigText.bigText(description_text);
+    bigText.setBigContentTitle(title_text);
+    bigText.setSummaryText(category_text);
 
     b.setContentIntent(pi);
     b.setSmallIcon(R.mipmap.ic_launcher_round);
@@ -45,7 +47,7 @@ public class MainActivity extends Activity {
     b.setStyle(bigText);
 
     mNotificationManager =
-        (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
     // === Removed some obsoletes
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -60,11 +62,25 @@ public class MainActivity extends Activity {
     }
 
     mNotificationManager.notify(0, b.build());
-    
-    
+  }
 
+  
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+    
+    // Sending a toast message
+    Toast.makeText(getApplicationContext(), "Toast: Activity Code just executed.", Toast.LENGTH_LONG).show(); // Toast.LENGTH_SHORT and Toast.LENGTH_LONG,  // We can't change duration at all, source: https://stackoverflow.com/a/2221285/10012446
+
+    
+    showNotification(getApplicationContext(), "Daily Reminders", "Life just rock and rolls", "Longboards just rocks down hill !");
+    
+    // todo: learn how to show a simply image:
     // URL url = new URL("https://i.picsum.photos/id/202/536/354.jpg?hmac=yO3GuY1TtL9JGeHctCd_n_LRx7XrmqDHOMESFbbN5lM");
     // Bitmap bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream());
     // imageView.setImageBitmap(bmp);
+
+    // todo: learn how to fetch some json data and show raw json text in a textview:
   }
 }
