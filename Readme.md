@@ -1,5 +1,9 @@
 # Learning Android
 
+## All about on-device developer options with android studio
+
+[Here](urlhttps://developer.android.com/studio/debug/dev-options).
+
 ## cli usage with android projects:
 
 **Use below command to generate apk and install right away**:
