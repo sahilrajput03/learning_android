@@ -1,5 +1,6 @@
 package com.helloworld;
 
+import java.lang.Math;
 import android.widget.Toast;
 // NotificationCompat, src: https://stackoverflow.com/a/59507099/10012446
 import androidx.core.app.NotificationCompat;
@@ -20,8 +21,8 @@ public class Utl {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
   }
   
-  public static void showNotification(Context context, String category_text, String title_text, String description_text) {
-    //// Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+  public static void showNotification(Context context, String channelId, int notificationId, String category_text, String title_text, String description_text) {
+    // Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
     // ? Sending a statusbar notification: docs:https://developer.android.com/training/notify-user/build-notification#add_the_support_library.
     // src: https://stackoverflow.com/a/16448278/10012446
     NotificationManager mNotificationManager;
@@ -48,7 +49,7 @@ public class Utl {
     // === Removed some obsoletes
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
     {
-        String channelId = "Your_channel_id";
+        // String channelId = "Your_channel_id";
         NotificationChannel channel = new NotificationChannel(
                                             channelId,
                                             "Channel human readable title",
@@ -57,7 +58,7 @@ public class Utl {
       b.setChannelId(channelId);
     }
 
-    mNotificationManager.notify(0, b.build());
+    mNotificationManager.notify(notificationId, b.build());
   }
 
 }

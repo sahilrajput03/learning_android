@@ -1,5 +1,15 @@
 # Learning Android
 
+**adb devices** - No permission error in adb is fixed simply via:
+
+```bash
+sudo adb kill-server
+sudo adb start-server
+# src: https://stackoverflow.com/a/9210397/10012446
+```
+
+My original works for ^ time @ [Setting up android environment with vscode@arch-noets](https://github.com/sahilrajput03/sahilrajput03/blob/master/arch-notes.md#setting-up-android-environment-with-vscode)
+
 **am**: Open app with am
 
 ```bash
