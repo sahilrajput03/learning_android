@@ -1,5 +1,21 @@
 # Learning Android
 
+## You can also generate .aab i.e, Android App Bundle
+
+**Q. Why .aap format instead of apk format ?**
+
+Ans.  https://dev.to/srajesh636/how-we-reduced-our-production-apk-size-by-70-in-react-native-1lci
+
+tldr; When you upload aab instead of apk file @ playstore you will allow playstore to generate separate apks for different platforms thus reducing the apks size for each type of device as there are different types of cpus for which apk is generated separately thus reducing apk file size.
+
+tldr; When you generate apk you have a generic apk file which is supported for all andorid devices.
+
+```bash
+./gradlew bundleRelease
+# resultng .aab file will be generated in say:
+# hello_world_sahil/app/build/outputs/bundle/release/app-release.aab
+```
+
 **adb devices** - No permission error in adb is fixed simply via:
 
 ```bash
