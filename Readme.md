@@ -16,6 +16,8 @@ tldr; When you generate apk you have a generic apk file which is supported for a
 # hello_world_sahil/app/build/outputs/bundle/release/app-release.aab
 ```
 
+***
+
 **adb devices** - No permission error in adb is fixed simply via:
 
 ```bash
