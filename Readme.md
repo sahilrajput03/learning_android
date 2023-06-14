@@ -80,6 +80,7 @@ For immediate app testing and debugging, you can build a debug APK. The debug AP
 To build a debug APK, open a command line and navigate to the root of your project directory. To initiate a debug build, invoke the assembleDebug task:
 
 ```bash
+# Generates apk at app/build/outputs/apk/debug/app-debug.apk
 ./gradlew assembleDebug
 
 # To get warnings causing the issues you can append --warning-mode option like that:
