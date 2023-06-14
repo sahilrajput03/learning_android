@@ -73,7 +73,7 @@ monkey -p your.package.name -v 50
 # This generates apk and installs to any available adb device that is connected
 
 # Get generated apk
-alias cd.apk='cd android/app/build/outputs/apk/debug/'
+alias cd.apkNativeProject='cd app/build/outputs/apk/debug/'
 # You'll see file with name `app-debug.apk`
 ```
 
