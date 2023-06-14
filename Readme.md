@@ -71,6 +71,10 @@ monkey -p your.package.name -v 50
 #NOTE: IF below doesn't install app then it means you need to uninstall app for all users and it re-running command would definitely work!!
 ./gradlew installDebug
 # This generates apk and installs to any available adb device that is connected
+
+# Get generated apk
+alias cd.apk='cd android/app/build/outputs/apk/debug/'
+# You'll see file with name `app-debug.apk`
 ```
 
 If you only want to generate apk then:
