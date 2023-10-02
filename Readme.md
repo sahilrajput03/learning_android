@@ -4,6 +4,18 @@
 - **Learn Capacitor:** [Click here](https://github.com/sahilrajput03/sahilrajput03/blob/master/learn-capacitor.md)
 - **Learn Google Play Console:** [Click here](learn-playconsole.md)
 
+## Android
+
+- Shared Preferences Storage is only accessible by the application itself: [Click here](https://developer.android.com/training/data-storage/shared-preferences#get-handle)
+
+![image](https://user-images.githubusercontent.com/31458531/236378843-cf64bd11-3333-40c0-a7d9-ced1b74e4125.png)
+
+- Android Shared Preferences Storage: [Source](https://stackoverflow.com/a/9244620/10012446)
+
+![image](https://user-images.githubusercontent.com/31458531/236378634-80a988c0-ff74-41ea-bd8c-eb50aa393c26.png)
+
+
+
 ## You can also generate .aab i.e, Android App Bundle
 
 **Q. Why .aap format instead of apk format ?**
