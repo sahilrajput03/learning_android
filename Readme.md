@@ -2,7 +2,7 @@
 
 **Quick Links:**
 - **Learn Capacitor:** [Click here](https://github.com/sahilrajput03/sahilrajput03/blob/master/learn-capacitor.md)
-- **Learn Google Play Console:** [Click here](learn-playconsole.md)
+- **Learn Google Play Console:** [Click here](https://github.com/sahilrajput03/sahilrajput03/blob/master/learn-playconsole.md)
 
 ## Android
 
