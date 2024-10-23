@@ -2,6 +2,7 @@
 
 **Quick Links:**
 - **Learn Capacitor:** [Click here](https://github.com/sahilrajput03/sahilrajput03/blob/master/learn-capacitor.md)
+- Android Developers > Develop > Reference | Manifest.permission: [Click here](https://developer.android.com/reference/android/Manifest.permission#MANAGE_DEVICE_POLICY_ACROSS_USERS_SECURITY_CRITICAL)
 - **Learn Google Play Console:** [Click here](https://github.com/sahilrajput03/sahilrajput03/blob/master/learn-playconsole.md)
 - **pwa-to-apk-using-twa:** [Click here](https://github.com/sahilrajput03/pwa-to-apk-using-twa)
 
