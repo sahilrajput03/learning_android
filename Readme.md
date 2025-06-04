@@ -8,6 +8,18 @@
   - [YouTube Search - Foreground Service](https://www.youtube.com/results?search_query=foreround+service+android)
   - CapAwesome - Foreground Service Plugin: [Click here](https://capawesome.io/plugins/android-foreground-service/)
 
+## Port forward on andorid using adb
+
+*Tip: use chatgpt if you want to learn more about this.*
+
+```bash
+# Forwarding mobile's 3000 port to server running on laptop's 3000 port: (This makes your mobile access localhost:3000 as if it's running locally.)
+adb reverse tcp:3000 tcp:3000
+
+# To forward laptop's 3000 port to a server running on mobile's 3000 port
+adb forward tcp:3000 tcp:3000
+```
+
 ## Android
 
 - Shared Preferences Storage is only accessible by the application itself: [Click here](https://developer.android.com/training/data-storage/shared-preferences#get-handle)
