@@ -7,6 +7,7 @@
 - Android Developers > Develop > Reference | Manifest.permission: [Click here](https://developer.android.com/reference/android/Manifest.permission#MANAGE_DEVICE_POLICY_ACROSS_USERS_SECURITY_CRITICAL)
   - [YouTube Search - Foreground Service](https://www.youtube.com/results?search_query=foreround+service+android)
   - CapAwesome - Foreground Service Plugin: [Click here](https://capawesome.io/plugins/android-foreground-service/)
+- Learn Automate (automation app in android): [Click here](https://docs.google.com/document/d/11Fyoox3T8T1y-TYNR69Y7y91YRkzt6dsfd6WVADYqeI/edit?tab=t.0#heading=h.b3xil96j40lh)
 
 ## Port forward on andorid using adb
 
