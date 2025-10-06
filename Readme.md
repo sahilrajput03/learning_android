@@ -3,7 +3,7 @@
 **Quick Links:**
 - **Learn Capacitor:** [Click here](https://github.com/sahilrajput03/sahilrajput03/blob/master/learn-capacitor.md)
 - **Learn Google Play Console:** [Click here](https://github.com/sahilrajput03/sahilrajput03/blob/master/learn-playconsole.md)
-- **❤️pwa-to-apk-using-twa:** [Click here](https://github.com/sahilrajput03/pwa-to-apk-using-twa)
+- **❤️pwa-to-apk-using-twa:** [Github Repo](https://github.com/sahilrajput03/pwa-to-apk-using-twa), [Google Doc](https://docs.google.com/document/d/1NG43BwNhiy9t198t_QFQYPTGeHceSa9KzgULQ0uKeuQ/edit?tab=t.0#heading=h.qlv0e77qh2p)
 - Android Developers > Develop > Reference | Manifest.permission: [Click here](https://developer.android.com/reference/android/Manifest.permission#MANAGE_DEVICE_POLICY_ACROSS_USERS_SECURITY_CRITICAL)
   - [YouTube Search - Foreground Service](https://www.youtube.com/results?search_query=foreround+service+android)
   - CapAwesome - Foreground Service Plugin: [Click here](https://capawesome.io/plugins/android-foreground-service/)
