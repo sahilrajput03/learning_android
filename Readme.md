@@ -9,6 +9,16 @@
   - CapAwesome - Foreground Service Plugin: [Click here](https://capawesome.io/plugins/android-foreground-service/)
 - Learn Automate (automation app in android): [Click here](https://docs.google.com/document/d/11Fyoox3T8T1y-TYNR69Y7y91YRkzt6dsfd6WVADYqeI/edit?tab=t.0#heading=h.b3xil96j40lh)
 
+## ❤️ adb conect via android's official builtin adb over wifi feature [TESTED]
+
+```sh
+# Go to Additional Setings > Developer options > Wireless debugging > Pair device with pairing code
+adb pair <IP>:<Port>
+# Then enter the pairing code
+
+adb connect <IP>:<Port>
+```
+
 ## Port forward on andorid using adb
 
 *Tip: use chatgpt if you want to learn more about this.*
