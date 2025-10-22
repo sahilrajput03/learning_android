@@ -11,6 +11,8 @@
 
 ## ❤️ adb conect via android's official builtin adb over wifi feature [TESTED]
 
+[Inspiration](https://chatgpt.com/c/68f8231b-995c-8321-89a2-13b2b08bb345)
+
 ```sh
 # Go to Additional Setings > Developer options > Wireless debugging > Pair device with pairing code
 adb pair <IP>:<Port>
