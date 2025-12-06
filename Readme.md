@@ -13,12 +13,17 @@
 
 [Inspiration](https://chatgpt.com/c/68f8231b-995c-8321-89a2-13b2b08bb345)
 
-```sh
-# Go to Additional Setings > Developer options > Wireless debugging > Pair device with pairing code
-adb pair <IP>:<Port>
-# Then enter the pairing code
+```ss
+# Go to Additional Setings > Developer options > Wireless debugging and check if your computer is paired by checking under heading "Paired devices". If not, you need to pair your computer by clicking on "Pair device with pairing code"
+adb pair <IP>:<Port> <WifiPairingCode> # E.g, adb pair 192.168.18.x:12345 123456
 
 adb connect <IP>:<Port>
+
+# To show connected devices
+adb devices
+
+# To disconnect
+adb disconnect IP_ADDRESS
 ```
 
 ## Port forward on andorid using adb
