@@ -22,7 +22,7 @@ adb connect <IP>:<Port>
 # To show connected devices
 adb devices
 
-# To disconnect
+# To disconnect (*Not tested)
 adb disconnect IP_ADDRESS
 ```
 
