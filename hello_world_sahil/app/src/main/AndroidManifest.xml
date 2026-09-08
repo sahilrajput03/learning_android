@@ -15,6 +15,8 @@
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN"/>
                         <category android:name="android.intent.category.LAUNCHER"/>
+
+                        <!-- Src: https://chatgpt.com/c/6a508bc5-60b8-83e8-aa24-74cef268de64 -->
                         <!-- ❤️ Learn: Declares this activity as a Home/Launcher activity -->
                         <category android:name="android.intent.category.HOME" />
                     </intent-filter>
