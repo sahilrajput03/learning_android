@@ -1,3 +1,13 @@
+# Readme
+
+**8 Sep 2026**
+
+I made the app as home screen app, check the comment in file `/app/src/main/AndroidManifest.xml`.
+
+***
+
+## Old
+
 - Raw code for sending notifications:
 
 Below code rocks but my showNotification() method in `MainActivity.java` file is just awesome!
