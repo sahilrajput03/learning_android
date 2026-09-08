@@ -1,5 +1,7 @@
 # Readme
 
+**This project requires Java v11.**
+
 **8 Sep 2026**
 
 I made the app as home screen app, check the comment in file `/app/src/main/AndroidManifest.xml`.
