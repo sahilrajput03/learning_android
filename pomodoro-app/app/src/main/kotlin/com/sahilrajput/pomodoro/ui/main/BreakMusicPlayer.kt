@@ -4,6 +4,8 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 
 data class MusicTrack(val name: String, val uri: String)
 
@@ -11,11 +13,14 @@ internal class BreakMusicPlayer(
   private val context: Context,
   private val onPlayingChanged: (Boolean) -> Unit,
   private val onLoadingChanged: (Boolean) -> Unit,
+  private val onProgressChanged: (positionMs: Int, durationMs: Int) -> Unit,
   private val onTrackCompleted: () -> Unit
 ) {
+  private val handler = Handler(Looper.getMainLooper())
   private var player: MediaPlayer? = null
   private var isPrepared = false
   private var isPaused = false
+  private var progressTicker: Runnable? = null
   val hasCurrentTrack: Boolean get() = player != null
 
   fun play(uri: Uri) {
@@ -35,15 +40,19 @@ internal class BreakMusicPlayer(
       onLoadingChanged(false)
       if (isPaused) {
         onPlayingChanged(false)
+        publishProgress(prepared)
       } else {
         prepared.start()
         onPlayingChanged(true)
+        startProgressUpdates(prepared)
       }
     }
     newPlayer.setOnCompletionListener { completed ->
       if (player === completed) {
         player = null
         isPrepared = false
+        stopProgressUpdates()
+        onProgressChanged(0, 0)
         completed.release()
         onPlayingChanged(false)
         onTrackCompleted()
@@ -75,7 +84,11 @@ internal class BreakMusicPlayer(
     isPaused = true
     if (!isPrepared) return
     try {
-      if (current.isPlaying) current.pause()
+      if (current.isPlaying) {
+        current.pause()
+        publishProgress(current)
+        stopProgressUpdates()
+      }
       onPlayingChanged(false)
     } catch (_: IllegalStateException) {
       stop()
@@ -89,6 +102,8 @@ internal class BreakMusicPlayer(
     try {
       current.start()
       onPlayingChanged(true)
+      publishProgress(current)
+      startProgressUpdates(current)
     } catch (_: IllegalStateException) {
       stop()
     }
@@ -99,6 +114,7 @@ internal class BreakMusicPlayer(
     player = null
     isPrepared = false
     isPaused = false
+    stopProgressUpdates()
     if (current != null) {
       try {
         if (current.isPlaying) current.stop()
@@ -108,7 +124,39 @@ internal class BreakMusicPlayer(
         current.release()
       }
     }
+    onProgressChanged(0, 0)
     onLoadingChanged(false)
     onPlayingChanged(false)
+  }
+
+  private fun startProgressUpdates(current: MediaPlayer) {
+    stopProgressUpdates()
+    val ticker = object : Runnable {
+      override fun run() {
+        if (player === current && isPrepared && current.isPlaying) {
+          publishProgress(current)
+          handler.postDelayed(this, PROGRESS_UPDATE_INTERVAL_MS)
+        }
+      }
+    }
+    progressTicker = ticker
+    handler.post(ticker)
+  }
+
+  private fun stopProgressUpdates() {
+    progressTicker?.let(handler::removeCallbacks)
+    progressTicker = null
+  }
+
+  private fun publishProgress(current: MediaPlayer) {
+    try {
+      onProgressChanged(current.currentPosition, current.duration)
+    } catch (_: IllegalStateException) {
+      // The player may be releasing after a track change.
+    }
+  }
+
+  private companion object {
+    const val PROGRESS_UPDATE_INTERVAL_MS = 1000L
   }
 }

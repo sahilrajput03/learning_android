@@ -282,7 +282,7 @@ private fun TimerContent(
       Text("Focus length", style = MaterialTheme.typography.titleSmall)
       Spacer(Modifier.height(8.dp))
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        val presets = listOf("25 min" to 25, "45 min" to 45, "1 min" to 1)
+        val presets = listOf("45 min" to 45, "25 min" to 25, "1 min" to 1)
         val visiblePresets = if (state.isRunning) {
           presets.filter { (_, minutes) -> minutes * 60 == state.focusDurationSeconds }
         } else {
@@ -324,6 +324,8 @@ private fun SessionMusicControls(
   val tracks = if (isFocus) state.focusMusicTracks else state.musicTracks
   val folderUri = if (isFocus) state.focusMusicFolderUri else state.musicFolderUri
   val trackIndex = if (isFocus) state.currentFocusMusicTrackIndex else state.currentMusicTrackIndex
+  val positionMs = if (isFocus) state.focusMusicPositionMs else state.musicPositionMs
+  val durationMs = if (isFocus) state.focusMusicDurationMs else state.musicDurationMs
   val isPlaying = if (isFocus) state.isFocusMusicPlaying else state.isMusicPlaying
   val isLoading = if (isFocus) state.isFocusMusicLoading else state.isMusicLoading
   val isLibraryLoading = if (isFocus) state.isFocusMusicLibraryLoading else state.isMusicLibraryLoading
@@ -342,6 +344,13 @@ private fun SessionMusicControls(
         }
         folderUri == null -> Text("Choose a local folder with music files", style = MaterialTheme.typography.bodySmall)
         else -> Text("No supported music files found in this folder", style = MaterialTheme.typography.bodySmall)
+      }
+      if (durationMs > 0) {
+        Text(
+          "${formatTime(positionMs / 1000)} / ${formatTime(durationMs / 1000)}",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
       }
       Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         OutlinedButton(onClick = { onChooseFolder(state.phase) }) {

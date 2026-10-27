@@ -30,8 +30,8 @@ enum class TimerPhase(val label: String) {
 
 data class TimerUiState(
   val phase: TimerPhase = TimerPhase.Focus,
-  val remainingSeconds: Int = 25 * 60,
-  val focusDurationSeconds: Int = 25 * 60,
+  val remainingSeconds: Int = 45 * 60,
+  val focusDurationSeconds: Int = 45 * 60,
   val shortBreakMinutes: Int = 5,
   val completedFocusSessions: Int = 0,
   val autoStartNext: Boolean = false,
@@ -43,6 +43,8 @@ data class TimerUiState(
   val musicFolderUri: String? = null,
   val musicTracks: List<MusicTrack> = emptyList(),
   val currentMusicTrackIndex: Int = 0,
+  val musicPositionMs: Int = 0,
+  val musicDurationMs: Int = 0,
   val isMusicPlaying: Boolean = false,
   val isMusicLoading: Boolean = false,
   val isMusicLibraryLoading: Boolean = false,
@@ -50,6 +52,8 @@ data class TimerUiState(
   val focusMusicFolderUri: String? = null,
   val focusMusicTracks: List<MusicTrack> = emptyList(),
   val currentFocusMusicTrackIndex: Int = 0,
+  val focusMusicPositionMs: Int = 0,
+  val focusMusicDurationMs: Int = 0,
   val isFocusMusicPlaying: Boolean = false,
   val isFocusMusicLoading: Boolean = false,
   val isFocusMusicLibraryLoading: Boolean = false,
@@ -98,12 +102,18 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     application,
     onPlayingChanged = { playing -> _uiState.update { it.copy(isMusicPlaying = playing) } },
     onLoadingChanged = { loading -> _uiState.update { it.copy(isMusicLoading = loading) } },
+    onProgressChanged = { position, duration ->
+      _uiState.update { it.copy(musicPositionMs = position, musicDurationMs = duration) }
+    },
     onTrackCompleted = { advanceMusicTrack(autoplay = true) }
   )
   private val focusMusicPlayer = BreakMusicPlayer(
     application,
     onPlayingChanged = { playing -> _uiState.update { it.copy(isFocusMusicPlaying = playing) } },
     onLoadingChanged = { loading -> _uiState.update { it.copy(isFocusMusicLoading = loading) } },
+    onProgressChanged = { position, duration ->
+      _uiState.update { it.copy(focusMusicPositionMs = position, focusMusicDurationMs = duration) }
+    },
     onTrackCompleted = { advanceFocusMusicTrack(autoplay = true) }
   )
   private var timerJob: Job? = null
