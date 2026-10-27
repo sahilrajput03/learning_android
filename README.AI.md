@@ -1,4 +1,4 @@
-# README
+# Making apps with using `android-cli`.
 
 Source: [Claude](https://claude.ai/chat/7988ad8e-dfd9-4d24-ac2f-783dd78cca20)
 
@@ -10,7 +10,7 @@ android create --list
 # empty-activity-lightbuild   Empty Activity (Experimental)   compose,activity,lightbuild
 
 
-# Create the project with the template, name and output folder:
+# Create a project with the template (`empty-activity`), name and output folder:
 #   empty-activity: pick one from the --list output (likely something like an empty Compose activity).
 #   --name: the display name of the app.
 #   --output (or -o): the folder to create, here pomodoro-app.
