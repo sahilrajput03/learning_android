@@ -39,6 +39,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -72,6 +74,7 @@ fun MainScreen(
   modifier: Modifier = Modifier,
   viewModel: MainScreenViewModel = viewModel(),
 ) {
+  val recordingViewModel: RecordingViewModel = viewModel()
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val context = LocalContext.current
   var musicFolderTarget by rememberSaveable { mutableStateOf(TimerPhase.Focus.name) }
@@ -103,6 +106,24 @@ fun MainScreen(
       else viewModel.setMusicFolder(uri)
     }
   }
+  val recordingFolderPickerLauncher = rememberLauncherForActivityResult(
+    ActivityResultContracts.OpenDocumentTree()
+  ) { uri ->
+    if (uri != null) {
+      try {
+        context.contentResolver.takePersistableUriPermission(
+          uri,
+          Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        )
+      } catch (_: SecurityException) {
+        // Some document providers only grant access for the current app session.
+      }
+      viewModel.setRecordingFolder(uri)
+    }
+  }
+  val recordingPermissionLauncher = rememberLauncherForActivityResult(
+    ActivityResultContracts.RequestPermission()
+  ) { granted -> if (granted) recordingViewModel.startRecording() }
   MainScreenContent(
     state = state,
     onStartPause = {
@@ -139,6 +160,18 @@ fun MainScreen(
       if (phase == TimerPhase.Focus) viewModel.previousFocusMusicTrack() else viewModel.previousMusicTrack()
     },
     onToggleShuffle = viewModel::toggleShuffle,
+    recordingFolderUri = state.recordingFolderUri,
+    onChooseRecordingFolder = { recordingFolderPickerLauncher.launch(null) },
+    onStartRecording = {
+      if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+        recordingViewModel.startRecording()
+      } else {
+        recordingPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+      }
+    },
+    onStopRecording = recordingViewModel::stopRecording,
+    onPauseRecording = recordingViewModel::pauseRecording,
+    onResumeRecording = recordingViewModel::resumeRecording,
     modifier = modifier
   )
 }
@@ -163,15 +196,28 @@ private fun MainScreenContent(
   onNextMusicTrack: (TimerPhase) -> Unit,
   onPreviousMusicTrack: (TimerPhase) -> Unit,
   onToggleShuffle: () -> Unit,
+  recordingFolderUri: String?,
+  onChooseRecordingFolder: () -> Unit,
+  onStartRecording: () -> Unit,
+  onStopRecording: () -> Unit,
+  onPauseRecording: () -> Unit,
+  onResumeRecording: () -> Unit,
   modifier: Modifier = Modifier
 ) {
   var showSettings by rememberSaveable { mutableStateOf(false) }
+  var selectedTab by rememberSaveable { mutableStateOf(0) }
   BackHandler(enabled = showSettings) { showSettings = false }
   Scaffold(
     modifier = modifier,
     topBar = {
       CenterAlignedTopAppBar(
-        title = { Text(if (showSettings) "Settings" else stringResource(R.string.app_name)) },
+        title = {
+          Text(
+            if (showSettings) {
+              if (selectedTab == 0) "Settings" else "Recorder settings"
+            } else if (selectedTab == 0) stringResource(R.string.app_name) else "Recorder"
+          )
+        },
         navigationIcon = {
           if (showSettings) {
             IconButton(
@@ -195,18 +241,33 @@ private fun MainScreenContent(
       )
     }
   ) { padding ->
+    Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+    if (!showSettings) {
+      TabRow(selectedTabIndex = selectedTab) {
+        Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Pomodoro") })
+        Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Recorder") })
+      }
+    }
     if (showSettings) {
-      SettingsContent(
-        state = state,
-        onAutoStartChanged = onAutoStartChanged,
-        onShortBreakMinutesChanged = onShortBreakMinutesChanged,
-        onAlertSoundEnabledChanged = onAlertSoundEnabledChanged,
-        onChooseAudio = onChooseAudio,
-        onUseDefaultAudio = onUseDefaultAudio,
-        onResetSessionData = onResetSessionData,
-        modifier = Modifier.fillMaxSize().padding(padding)
-      )
-    } else {
+      if (selectedTab == 0) {
+        SettingsContent(
+          state = state,
+          onAutoStartChanged = onAutoStartChanged,
+          onShortBreakMinutesChanged = onShortBreakMinutesChanged,
+          onAlertSoundEnabledChanged = onAlertSoundEnabledChanged,
+          onChooseAudio = onChooseAudio,
+          onUseDefaultAudio = onUseDefaultAudio,
+          onResetSessionData = onResetSessionData,
+          modifier = Modifier.weight(1f)
+        )
+      } else {
+        RecorderSettingsContent(
+          storageFolderUri = recordingFolderUri,
+          onChooseStorageFolder = onChooseRecordingFolder,
+          modifier = Modifier.weight(1f)
+        )
+      }
+    } else if (selectedTab == 0) {
       TimerContent(
         state = state,
         onStartPause = onStartPause,
@@ -219,8 +280,18 @@ private fun MainScreenContent(
         onNextMusicTrack = onNextMusicTrack,
         onPreviousMusicTrack = onPreviousMusicTrack,
         onToggleShuffle = onToggleShuffle,
-        modifier = Modifier.fillMaxSize().padding(padding)
+        modifier = Modifier.weight(1f)
       )
+    } else {
+      RecorderScreen(
+        storageFolderUri = recordingFolderUri,
+        onStartRecording = onStartRecording,
+        onStopRecording = onStopRecording,
+        onPauseRecording = onPauseRecording,
+        onResumeRecording = onResumeRecording,
+        modifier = Modifier.weight(1f)
+      )
+    }
     }
   }
 }
@@ -540,7 +611,15 @@ private fun formatTime(seconds: Int): String = "%02d:%02d".format(seconds / 60, 
 @Composable
 private fun MainScreenPreview() {
   PomodoroAppTheme {
-    MainScreenContent(TimerUiState(), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+    MainScreenContent(
+      state = TimerUiState(),
+      onStartPause = {}, onStopAlert = {}, onReset = {}, onSelectDuration = {}, onSelectGradient = {},
+      onAutoStartChanged = {}, onShortBreakMinutesChanged = {}, onAlertSoundEnabledChanged = {},
+      onChooseAudio = {}, onUseDefaultAudio = {}, onResetSessionData = {}, onChooseMusicFolder = {},
+      onPlayPauseMusic = {}, onNextMusicTrack = {}, onPreviousMusicTrack = {}, onToggleShuffle = {},
+      recordingFolderUri = null, onChooseRecordingFolder = {}, onStartRecording = {}, onStopRecording = {},
+      onPauseRecording = {}, onResumeRecording = {}
+    )
   }
 }
 

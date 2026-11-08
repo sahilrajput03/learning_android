@@ -50,6 +50,7 @@ data class TimerUiState(
   val isMusicLibraryLoading: Boolean = false,
   val shuffleEnabled: Boolean = true,
   val focusMusicFolderUri: String? = null,
+  val recordingFolderUri: String? = null,
   val focusMusicTracks: List<MusicTrack> = emptyList(),
   val currentFocusMusicTrackIndex: Int = 0,
   val focusMusicPositionMs: Int = 0,
@@ -78,6 +79,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
       musicFolderUri = savedMusicFolder,
       isMusicLibraryLoading = savedMusicFolder != null,
       focusMusicFolderUri = savedFocusMusicFolder,
+      recordingFolderUri = preferences.getString("recording_folder_uri", null),
       isFocusMusicLibraryLoading = savedFocusMusicFolder != null
     )
   )
@@ -254,6 +256,12 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
       )
     }
     loadMusicFolder(uriString, focus = true)
+  }
+
+  fun setRecordingFolder(uri: Uri) {
+    val value = uri.toString()
+    preferences.edit().putString("recording_folder_uri", value).apply()
+    _uiState.update { it.copy(recordingFolderUri = value) }
   }
 
   fun playPauseFocusMusic() {
