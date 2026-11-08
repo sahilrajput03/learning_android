@@ -3,6 +3,8 @@ package com.sahilrajput.pomodoro.ui.main
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +22,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -36,6 +40,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -59,6 +65,11 @@ fun RecorderScreen(
   var showCreateFolder by rememberSaveable { mutableStateOf(false) }
   var folderName by rememberSaveable { mutableStateOf("") }
   var deleteTarget by remember { mutableStateOf<Uri?>(null) }
+  var deleteFolderTarget by remember { mutableStateOf<Uri?>(null) }
+  var renameTarget by remember { mutableStateOf<RecordingEntry?>(null) }
+  var renameName by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+    mutableStateOf(TextFieldValue(""))
+  }
   var showDeleteSelected by rememberSaveable { mutableStateOf(false) }
   var showMovePicker by rememberSaveable { mutableStateOf(false) }
   val destinationStack = remember { mutableStateListOf<Uri>() }
@@ -115,7 +126,16 @@ fun RecorderScreen(
         ) {
           items(state.entries, key = { it.uri.toString() }) { entry ->
             if (entry.isDirectory) {
-              FolderRow(entry, enabled = !state.isRecording) { viewModel.openFolder(entry.uri) }
+              FolderRow(
+                entry = entry,
+                enabled = !state.isRecording,
+                onClick = { viewModel.openFolder(entry.uri) },
+                onRename = {
+                  renameName = TextFieldValue(entry.name, selection = TextRange(entry.name.length))
+                  renameTarget = entry
+                },
+                onDelete = { deleteFolderTarget = entry.uri }
+              )
             } else {
               RecordingFileRow(
                 entry = entry,
@@ -125,6 +145,11 @@ fun RecorderScreen(
                 isPlaying = state.playbackUri == entry.uri.toString() && state.isPlaybackPlaying,
                 isLoading = state.playbackUri == entry.uri.toString() && state.isPlaybackLoading,
                 onPlayPause = { viewModel.togglePlayback(entry.uri) },
+                onRename = {
+                  val name = entry.name.substringBeforeLast('.', entry.name)
+                  renameName = TextFieldValue(name, selection = TextRange(name.length))
+                  renameTarget = entry
+                },
                 onDelete = { deleteTarget = entry.uri }
               )
             }
@@ -185,6 +210,57 @@ fun RecorderScreen(
         TextButton(onClick = { deleteTarget?.let(viewModel::delete); deleteTarget = null }) { Text("Delete") }
       },
       dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("Cancel") } }
+    )
+  }
+
+  if (deleteFolderTarget != null) {
+    AlertDialog(
+      onDismissRequest = { deleteFolderTarget = null },
+      title = { Text("Delete folder?") },
+      text = { Text("This folder and everything inside it will be permanently deleted.") },
+      confirmButton = {
+        TextButton(onClick = {
+          deleteFolderTarget?.let(viewModel::deleteFolder)
+          deleteFolderTarget = null
+        }) { Text("Delete") }
+      },
+      dismissButton = { TextButton(onClick = { deleteFolderTarget = null }) { Text("Cancel") } }
+    )
+  }
+
+  if (renameTarget != null) {
+    val target = renameTarget
+    val extension = target?.takeIf { !it.isDirectory && it.name.contains('.') }?.name?.substringAfterLast('.')
+    AlertDialog(
+      onDismissRequest = { renameTarget = null },
+      title = { Text(if (target?.isDirectory == true) "Rename folder" else "Rename recording") },
+      text = {
+        val focusRequester = remember { FocusRequester() }
+        val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+        LaunchedEffect(Unit) {
+          focusRequester.requestFocus()
+          keyboardController?.show()
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          OutlinedTextField(
+            value = renameName,
+            onValueChange = { renameName = it },
+            label = { Text(if (target?.isDirectory == true) "Folder name" else "File name") },
+            singleLine = true,
+            modifier = Modifier.focusRequester(focusRequester)
+          )
+          if (extension != null) {
+            Text("The .$extension extension will be kept.", style = MaterialTheme.typography.bodySmall)
+          }
+        }
+      },
+      confirmButton = {
+        TextButton(onClick = {
+          renameTarget?.let { viewModel.rename(it.uri, renameName.text) }
+          renameTarget = null
+        }) { Text("Rename") }
+      },
+      dismissButton = { TextButton(onClick = { renameTarget = null }) { Text("Cancel") } }
     )
   }
 
@@ -252,11 +328,24 @@ fun RecorderSettingsContent(
 }
 
 @Composable
-private fun FolderRow(entry: RecordingEntry, enabled: Boolean, onClick: () -> Unit) {
-  Card(modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick), shape = RoundedCornerShape(14.dp)) {
-    Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-      Text("📁", modifier = Modifier.padding(end = 12.dp))
-      Text(entry.name, style = MaterialTheme.typography.bodyLarge)
+private fun FolderRow(
+  entry: RecordingEntry,
+  enabled: Boolean,
+  onClick: () -> Unit,
+  onRename: () -> Unit,
+  onDelete: () -> Unit
+) {
+  Card(shape = RoundedCornerShape(14.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+      Row(
+        modifier = Modifier.weight(1f).clickable(enabled = enabled, onClick = onClick).padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Text("📁", modifier = Modifier.padding(end = 12.dp))
+        Text(entry.name, style = MaterialTheme.typography.bodyLarge)
+      }
+      TextButton(onClick = onRename, enabled = enabled) { Text("Rename") }
+      TextButton(onClick = onDelete, enabled = enabled) { Text("Delete") }
     }
   }
 }
@@ -270,6 +359,7 @@ private fun RecordingFileRow(
   isLoading: Boolean,
   onSelect: () -> Unit,
   onPlayPause: () -> Unit,
+  onRename: () -> Unit,
   onDelete: () -> Unit
 ) {
   Card(shape = RoundedCornerShape(14.dp)) {
@@ -278,14 +368,38 @@ private fun RecordingFileRow(
       verticalAlignment = Alignment.CenterVertically
     ) {
       Checkbox(checked = selected, onCheckedChange = { onSelect() }, enabled = enabled)
-      Column(modifier = Modifier.weight(1f).clickable(enabled = enabled, onClick = onSelect).padding(vertical = 8.dp)) {
-        Text(entry.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-        Text("Audio recording", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+      Column(modifier = Modifier.weight(1f).padding(vertical = 4.dp)) {
+        Text(
+          entry.name,
+          modifier = Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onSelect).padding(vertical = 1.dp),
+          style = MaterialTheme.typography.bodyLarge,
+          fontWeight = FontWeight.Medium
+        )
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(
+              onClick = onPlayPause,
+              enabled = enabled && !isLoading,
+              modifier = Modifier.height(32.dp),
+              contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) {
+              Text(if (isLoading) "Loading…" else if (isPlaying) "Pause" else "Play")
+            }
+            TextButton(
+              onClick = onRename,
+              enabled = enabled,
+              modifier = Modifier.height(32.dp),
+              contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) { Text("Rename") }
+            TextButton(
+              onClick = onDelete,
+              enabled = enabled,
+              modifier = Modifier.height(32.dp),
+              contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) { Text("Delete") }
+          }
+        }
       }
-      TextButton(onClick = onPlayPause, enabled = enabled && !isLoading) {
-        Text(if (isLoading) "Loading…" else if (isPlaying) "Pause" else "Play")
-      }
-      TextButton(onClick = onDelete, enabled = enabled) { Text("Delete") }
     }
   }
 }

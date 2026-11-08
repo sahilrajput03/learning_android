@@ -11,6 +11,9 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +50,6 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
   private var recorder: MediaRecorder? = null
   private var outputDescriptor: ParcelFileDescriptor? = null
   private var activeRecording: Uri? = null
-  private var activeSequence: Int? = null
   private var mediaPlayer: MediaPlayer? = null
 
   fun setStorageFolder(uri: Uri?) {
@@ -113,13 +115,14 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
       return
     }
     stopPlayback()
-    var sequence = preferences.getInt("recording_next_sequence", 1).coerceAtLeast(1)
-    var destination = folder.findFile("$sequence.m4a")
-    while (destination != null) {
-      sequence++
-      destination = folder.findFile("$sequence.m4a")
+    val timestamp = Calendar.getInstance()
+    val formatter = SimpleDateFormat("yyyy-MM-dd_hh-mm-a", Locale.US)
+    var fileName = formatter.format(timestamp.time) + ".m4a"
+    while (folder.findFile(fileName) != null) {
+      timestamp.add(Calendar.MINUTE, 1)
+      fileName = formatter.format(timestamp.time) + ".m4a"
     }
-    destination = folder.createFile("audio/mp4", "$sequence.m4a")
+    val destination = folder.createFile("audio/mp4", fileName)
     if (destination == null) {
       _uiState.update { it.copy(message = "Couldn't create the recording file") }
       return
@@ -142,9 +145,7 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
       mediaRecorder.prepare()
       mediaRecorder.start()
       activeRecording = destination.uri
-      activeSequence = sequence
-      preferences.edit().putInt("recording_next_sequence", sequence + 1).apply()
-      _uiState.update { it.copy(isRecording = true, message = "Recording to $sequence.m4a") }
+      _uiState.update { it.copy(isRecording = true, message = "Recording to $fileName") }
     } catch (error: Exception) {
       destination.delete()
       _uiState.update { it.copy(message = "Couldn't start recording: ${error.localizedMessage ?: "microphone unavailable"}") }
@@ -153,7 +154,6 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
       outputDescriptor?.close()
       outputDescriptor = null
       activeRecording = null
-      activeSequence = null
     }
   }
 
@@ -164,7 +164,6 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
       currentRecorder.stop()
     } catch (_: RuntimeException) {
       activeRecording?.let { document(it)?.delete() }
-      activeSequence?.let { preferences.edit().putInt("recording_next_sequence", it).apply() }
       errorMessage = "Recording was too short and was discarded"
     } finally {
       currentRecorder.release()
@@ -172,7 +171,6 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
       outputDescriptor?.close()
       outputDescriptor = null
       activeRecording = null
-      activeSequence = null
       _uiState.update { it.copy(isRecording = false, isRecordingPaused = false, message = errorMessage ?: "Recording saved") }
       refresh()
     }
@@ -203,6 +201,65 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
     if (_uiState.value.playbackUri == uri.toString()) stopPlayback()
     val deleted = document(uri)?.delete() == true
     _uiState.update { it.copy(message = if (deleted) "File deleted" else "Couldn't delete file") }
+    refresh()
+  }
+
+  fun deleteFolder(uri: Uri) {
+    if (_uiState.value.isRecording) return
+    val folder = document(uri)
+    if (folder == null || !folder.isDirectory) {
+      _uiState.update { it.copy(message = "Couldn't delete folder") }
+      return
+    }
+    val deleted = deleteRecursively(folder)
+    _uiState.update { it.copy(message = if (deleted) "Folder deleted" else "Couldn't delete folder") }
+    refresh()
+  }
+
+  private fun deleteRecursively(file: DocumentFile): Boolean {
+    if (file.isDirectory && !file.listFiles().map(::deleteRecursively).all { it }) return false
+    if (_uiState.value.playbackUri == file.uri.toString()) stopPlayback()
+    return file.delete()
+  }
+
+  fun rename(uri: Uri, requestedName: String) {
+    if (_uiState.value.isRecording) return
+    val file = document(uri)
+    val oldName = file?.name
+    if (file == null || oldName == null) {
+      _uiState.update { it.copy(message = "Couldn't find item to rename") }
+      return
+    }
+    val baseName = requestedName.trim()
+    val extension = oldName.substringAfterLast('.', "").takeIf { !file.isDirectory && oldName.contains('.') }
+    val cleanBaseName = if (extension != null && baseName.endsWith(".$extension", ignoreCase = true)) {
+      baseName.dropLast(extension.length + 1)
+    } else baseName
+    if (cleanBaseName.isBlank() || cleanBaseName == "." || cleanBaseName == ".." ||
+      cleanBaseName.contains('/') || cleanBaseName.contains('\\')
+    ) {
+      _uiState.update { it.copy(message = "Enter a valid file name") }
+      return
+    }
+    val newName = if (extension == null) cleanBaseName else "$cleanBaseName.$extension"
+    val parent = _uiState.value.currentFolderUri?.let(::document)
+    if (parent == null) {
+      _uiState.update { it.copy(message = "Couldn't find the current folder") }
+      return
+    }
+    val duplicate = parent.findFile(newName)
+    if (duplicate != null && duplicate.uri != uri) {
+      _uiState.update { it.copy(message = "An item with that name already exists") }
+      return
+    }
+    if (_uiState.value.playbackUri == uri.toString()) stopPlayback()
+    val renamed = file.renameTo(newName)
+    _uiState.update {
+      it.copy(
+        selectedUris = emptySet(),
+        message = if (renamed) "Renamed successfully" else "Couldn't rename item"
+      )
+    }
     refresh()
   }
 
