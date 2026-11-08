@@ -22,6 +22,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -85,34 +86,81 @@ fun RecorderScreen(
     } else {
       if (state.folderStack.size > 1) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-          OutlinedButton(onClick = viewModel::navigateUp, enabled = !state.isRecording) { Text("Up") }
-          Text("Inside: ${state.folderStack.lastOrNull()?.let(viewModel::folderName) ?: "Folder"}", style = MaterialTheme.typography.titleMedium)
+          CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+            OutlinedButton(
+              onClick = viewModel::navigateUp,
+              enabled = !state.isRecording,
+              modifier = Modifier.height(32.dp),
+              contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) {
+              Text("↑", style = MaterialTheme.typography.labelSmall)
+            }
+          }
+          Text(
+            state.folderStack.drop(1)
+              .joinToString(separator = "/", prefix = "/") { viewModel.folderName(it) },
+            style = MaterialTheme.typography.labelSmall
+          )
         }
       }
       if (state.message != null) {
-        Text(state.message!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Text(
+            state.message.orEmpty(),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
+          CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+            IconButton(onClick = viewModel::clearMessage, modifier = Modifier.height(28.dp)) {
+              Text("×", style = MaterialTheme.typography.titleMedium)
+            }
+          }
+        }
       }
 
       Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(
-          onClick = { showCreateFolder = true },
-          enabled = !state.isRecording,
-          contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-        ) { Text("New folder", style = MaterialTheme.typography.labelSmall) }
-        if (state.selectedUris.isNotEmpty()) {
-          OutlinedButton(onClick = {
-            destinationStack.clear()
-            state.rootUri?.let(destinationStack::add)
-            showMovePicker = true
-          }, enabled = !state.isRecording, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)) {
-            Text("Move (${state.selectedUris.size})", style = MaterialTheme.typography.labelSmall)
-          }
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
           OutlinedButton(
-            onClick = { showDeleteSelected = true },
+            onClick = { showCreateFolder = true },
             enabled = !state.isRecording,
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
-          ) { Text("Delete (${state.selectedUris.size})", style = MaterialTheme.typography.labelSmall) }
-          TextButton(onClick = viewModel::clearSelection) { Text("Clear") }
+            modifier = Modifier.height(32.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+          ) { Text("New folder", style = MaterialTheme.typography.labelSmall) }
+          if (state.selectedUris.isNotEmpty()) {
+            OutlinedButton(
+              onClick = {
+                destinationStack.clear()
+                state.rootUri?.let(destinationStack::add)
+                showMovePicker = true
+              },
+              enabled = !state.isRecording,
+              modifier = Modifier.height(32.dp),
+              contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) {
+              Text("Move (${state.selectedUris.size})", style = MaterialTheme.typography.labelSmall)
+            }
+            OutlinedButton(
+              onClick = { showDeleteSelected = true },
+              enabled = !state.isRecording,
+              modifier = Modifier.height(32.dp),
+              contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) { Text("Delete (${state.selectedUris.size})", style = MaterialTheme.typography.labelSmall) }
+          }
+        }
+        if (state.selectedUris.isNotEmpty()) {
+          CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+            TextButton(
+              onClick = viewModel::clearSelection,
+              modifier = Modifier.height(32.dp),
+              contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) {
+              Text("Clear", style = MaterialTheme.typography.labelSmall)
+            }
+          }
         }
       }
 
@@ -128,8 +176,10 @@ fun RecorderScreen(
             if (entry.isDirectory) {
               FolderRow(
                 entry = entry,
+                selected = entry.uri.toString() in state.selectedUris,
                 enabled = !state.isRecording,
                 onClick = { viewModel.openFolder(entry.uri) },
+                onSelect = { viewModel.toggleSelected(entry.uri) },
                 onRename = {
                   renameName = TextFieldValue(entry.name, selection = TextRange(entry.name.length))
                   renameTarget = entry
@@ -188,7 +238,19 @@ fun RecorderScreen(
       onDismissRequest = { showCreateFolder = false },
       title = { Text("Create folder") },
       text = {
-        OutlinedTextField(value = folderName, onValueChange = { folderName = it }, label = { Text("Folder name") }, singleLine = true)
+        val focusRequester = remember { FocusRequester() }
+        val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+        LaunchedEffect(Unit) {
+          focusRequester.requestFocus()
+          keyboardController?.show()
+        }
+        OutlinedTextField(
+          value = folderName,
+          onValueChange = { folderName = it },
+          label = { Text("Folder name") },
+          singleLine = true,
+          modifier = Modifier.focusRequester(focusRequester)
+        )
       },
       confirmButton = {
         TextButton(onClick = {
@@ -267,8 +329,8 @@ fun RecorderScreen(
   if (showDeleteSelected) {
     AlertDialog(
       onDismissRequest = { showDeleteSelected = false },
-      title = { Text("Delete selected files?") },
-      text = { Text("${state.selectedUris.size} file(s) will be permanently deleted.") },
+      title = { Text("Delete selected items?") },
+      text = { Text("${state.selectedUris.size} item(s) will be permanently deleted.") },
       confirmButton = {
         TextButton(onClick = { viewModel.deleteSelected(); showDeleteSelected = false }) { Text("Delete") }
       },
@@ -278,6 +340,7 @@ fun RecorderScreen(
 
   if (showMovePicker) {
     val currentDestination = destinationStack.lastOrNull()
+    val movesIntoSelectedFolder = destinationStack.any { it.toString() in state.selectedUris }
     AlertDialog(
       onDismissRequest = { showMovePicker = false },
       title = { Text("Move to ${currentDestination?.let(viewModel::folderName) ?: "folder"}") },
@@ -288,6 +351,9 @@ fun RecorderScreen(
           }
           val folders = currentDestination?.let(viewModel::listFolders).orEmpty()
           if (folders.isEmpty()) Text("No folders inside")
+          if (movesIntoSelectedFolder) {
+            Text("A folder can't be moved into itself or one of its subfolders.")
+          }
           folders.forEach { folder ->
             TextButton(onClick = { destinationStack.add(folder.uri) }) { Text("📁  ${folder.name}") }
           }
@@ -297,7 +363,7 @@ fun RecorderScreen(
         TextButton(onClick = {
           currentDestination?.let(viewModel::moveSelected)
           showMovePicker = false
-        }) { Text("Move here") }
+        }, enabled = !movesIntoSelectedFolder) { Text("Move here") }
       },
       dismissButton = { TextButton(onClick = { showMovePicker = false }) { Text("Cancel") } }
     )
@@ -330,13 +396,16 @@ fun RecorderSettingsContent(
 @Composable
 private fun FolderRow(
   entry: RecordingEntry,
+  selected: Boolean,
   enabled: Boolean,
   onClick: () -> Unit,
+  onSelect: () -> Unit,
   onRename: () -> Unit,
   onDelete: () -> Unit
 ) {
   Card(shape = RoundedCornerShape(14.dp)) {
     Row(modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+      Checkbox(checked = selected, onCheckedChange = { onSelect() }, enabled = enabled)
       Row(
         modifier = Modifier.weight(1f).clickable(enabled = enabled, onClick = onClick).padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically

@@ -107,6 +107,8 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
 
   fun clearSelection() = _uiState.update { it.copy(selectedUris = emptySet()) }
 
+  fun clearMessage() = _uiState.update { it.copy(message = null) }
+
   fun startRecording() {
     if (_uiState.value.isRecording) return
     val folder = _uiState.value.currentFolderUri?.let(::document)
@@ -267,8 +269,11 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
     if (_uiState.value.isRecording) return
     val selected = _uiState.value.selectedUris.toList()
     if (_uiState.value.playbackUri in selected) stopPlayback()
-    val deleted = selected.count { document(Uri.parse(it))?.delete() == true }
-    _uiState.update { it.copy(selectedUris = emptySet(), message = "$deleted file${if (deleted == 1) "" else "s"} deleted") }
+    val deleted = selected.count { value ->
+      val item = document(Uri.parse(value)) ?: return@count false
+      if (item.isDirectory) deleteRecursively(item) else item.delete()
+    }
+    _uiState.update { it.copy(selectedUris = emptySet(), message = "$deleted item${if (deleted == 1) "" else "s"} deleted") }
     refresh()
   }
 
@@ -283,10 +288,6 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
     state.selectedUris.forEach { value ->
       val sourceUri = Uri.parse(value)
       val source = document(sourceUri) ?: return@forEach
-      if (source.isDirectory) {
-        skipped++
-        return@forEach
-      }
       // fromTreeUri() creates a fresh DocumentFile whose parentFile is null;
       // the selected files are all children of the folder currently displayed.
       val sourceParent = state.currentFolderUri?.let(::document) ?: return@forEach
@@ -305,19 +306,24 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
           sourceParent.uri,
           target.uri
         )
-        movedUri != null || copyThenDelete(source, target)
+        movedUri != null || if (source.isDirectory) {
+          copyFolderThenDelete(source, target)
+        } else {
+          copyThenDelete(source, target)
+        }
       } catch (_: Exception) {
-        copyThenDelete(source, target)
+        if (source.isDirectory) copyFolderThenDelete(source, target) else copyThenDelete(source, target)
       }
       if (success) moved++
+      else skipped++
     }
     val total = state.selectedUris.size
     val message = if (moved == total) {
-      "$moved file${if (moved == 1) "" else "s"} moved"
+      "$moved item${if (moved == 1) "" else "s"} moved"
     } else if (moved == 0 && skipped == total) {
-      "Files are already in this folder or have duplicate names."
+      "Items are already in this folder, have duplicate names, or couldn't be moved."
     } else {
-      "Moved $moved of $total files. Some files couldn't be moved."
+      "Moved $moved of $total items. Some items couldn't be moved."
     }
     _uiState.update { it.copy(selectedUris = emptySet(), message = message) }
     refresh()
@@ -392,18 +398,52 @@ class RecordingViewModel(application: Application) : AndroidViewModel(applicatio
   }
 
   private fun copyThenDelete(source: DocumentFile, destinationFolder: DocumentFile): Boolean {
+    val copy = copyFile(source, destinationFolder) ?: return false
+    if (source.delete()) return true
+    copy.delete()
+    return false
+  }
+
+  private fun copyFolderThenDelete(source: DocumentFile, destinationFolder: DocumentFile): Boolean {
+    val copy = copyFolder(source, destinationFolder) ?: return false
+    if (deleteRecursively(source)) return true
+    return false
+  }
+
+  private fun copyFolder(source: DocumentFile, destinationFolder: DocumentFile): DocumentFile? {
+    val copy = destinationFolder.createDirectory(source.name ?: return null) ?: return null
+    return try {
+      val copiedChildren = source.listFiles().all { child ->
+        if (child.isDirectory) {
+          copyFolder(child, copy) != null
+        } else {
+          copyFile(child, copy) != null
+        }
+      }
+      if (copiedChildren) copy else {
+        deleteRecursively(copy)
+        null
+      }
+    } catch (error: Exception) {
+      deleteRecursively(copy)
+      throw error
+    }
+  }
+
+  private fun copyFile(source: DocumentFile, destinationFolder: DocumentFile): DocumentFile? {
     var copy: DocumentFile? = null
     return try {
-      copy = destinationFolder.createFile(source.type ?: "application/octet-stream", source.name ?: return false)
-        ?: return false
+      val created = destinationFolder.createFile(source.type ?: "application/octet-stream", source.name ?: return null)
+        ?: return null
+      copy = created
       val resolver = getApplication<Application>().contentResolver
-      val input = resolver.openInputStream(source.uri) ?: run { copy.delete(); return false }
-      val output = resolver.openOutputStream(copy.uri, "w") ?: run { input.close(); copy.delete(); return false }
+      val input = resolver.openInputStream(source.uri) ?: run { created.delete(); return null }
+      val output = resolver.openOutputStream(created.uri, "w") ?: run { input.close(); created.delete(); return null }
       input.use { sourceStream -> output.use { outputStream -> sourceStream.copyTo(outputStream) } }
-      if (source.delete()) true else { copy.delete(); false }
+      created
     } catch (_: Exception) {
       copy?.delete()
-      false
+      null
     }
   }
 
